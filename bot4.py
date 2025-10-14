@@ -233,7 +233,7 @@ if __name__ == "__main__":
             if f.read().strip() == today:
                 need_fetch = False
 
-    if need_fetch and ((hour == 23 and minute >= 10) or (hour == 23 and minute <= 10)):
+    if need_fetch and ((hour == 22 and minute >= 50) or (hour == 23 and minute <= 10)):
         print(f"[{now_ist}] 🔄 Fetching fresh news for all categories...")
         fetched_any = False
         for key, prompt in PROMPTS.items():
