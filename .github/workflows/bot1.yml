@@ -1,4 +1,4 @@
-name: Bot4 Scheduler
+name: botfinal Scheduler
 
 on:
   # Manual trigger
@@ -34,7 +34,7 @@ jobs:
         run: |
           pip install requests googletrans==4.0.0-rc1 tweepy
 
-      - name: Run Bot2
+      - name: Run botfinal
         env:
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
@@ -44,4 +44,4 @@ jobs:
         run: |
           MODE="${{ github.event.inputs.mode || 'auto' }}"
           CATEGORY="${{ github.event.inputs.category || '' }}"
-          python bot4.py $MODE $CATEGORY
+          python botfinal.py $MODE $CATEGORY
