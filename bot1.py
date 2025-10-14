@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import random
 import os
 import json
-from config import *
+
 
 translator = Translator()
 
@@ -26,7 +26,13 @@ PROMPTS = {
     "countries": "give me 5 controversial news each in 200 to 250 characters related to countries, Today, in hindi",
     "others": "give me 9 controversial news each in 200 to 250 characters related to cricket/defence/religion/administration/incident/event, Today, in hindi"
 }
+import os
 
+PERPLEXITY_API_KEY = os.environ.get("PERPLEXITY_API_KEY")
+TWITTER_API_KEY = os.environ.get("TWITTER_API_KEY")
+TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET")
+TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
+TWITTER_ACCESS_SECRET = os.environ.get("TWITTER_ACCESS_SECRET")
 # ---------------- Twitter Setup ----------------
 auth = tweepy.OAuth1UserHandler(
     TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
