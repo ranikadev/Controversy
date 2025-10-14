@@ -1,54 +1,47 @@
-name: Controversy Bot
+name: Bot2 Scheduler
 
 on:
-  # Auto hourly run for posting
-  schedule:
-    - cron: '0 * * * *'  # every hour at minute 0
-  # Manual trigger from GitHub UI
+  # Manual trigger
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'Run mode: auto/manual'
+        required: true
+        default: 'auto'
       category:
-        description: 'Optional: category for manual fetch (bjp/congress/countries/others)'
+        description: 'Category for manual mode (bjp/congress/countries/others)'
         required: false
-        default: ''
+
+  # Scheduled auto run: 8 PM IST ±50 min (7:10 PM → 8:50 PM IST)
+  # Converted to UTC: 14:10–15:50 UTC
+  schedule:
+    - cron: '10,20,30,40,50,0 14-15 * * *' # Every 10 min within window
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
-    env:
-      PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
-      TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
-      TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
-      TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-      TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
-
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install requests googletrans==4.0.0-rc1 tweepy
 
-      - name: Run Controversy Bot
+      - name: Run Bot2
+        env:
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual trigger
-            if [ -z "${{ github.event.inputs.category }}" ]; then
-              echo "🟡 Manual fetch with default category: bjp"
-              python bot2.py manual
-            else
-              echo "🟡 Manual fetch for category: ${{ github.event.inputs.category }}"
-              python bot2.py manual ${{ github.event.inputs.category }}
-            fi
-          else
-            # Auto hourly run
-            python bot3.py
-          fi
+          MODE="${{ github.event.inputs.mode || 'auto' }}"
+          CATEGORY="${{ github.event.inputs.category || '' }}"
+          python bot3.py $MODE $CATEGORY
