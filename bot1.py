@@ -142,12 +142,16 @@ def post_next(today_post=True):
         print("No new news to post.")
 
 # ---------------- Manual Fetch & Post for Testing ----------------
-def manual_fetch_post():
-    print("Categories available:", list(PROMPTS.keys()))
-    category = input("Enter category to fetch (bjp/congress/countries/others): ").strip().lower()
+def manual_fetch_post(category=None):
+    if category is None:
+        category = input("Enter category to fetch (bjp/congress/countries/others): ").strip().lower()
+    else:
+        category = category.lower()
+
     if category not in PROMPTS:
         print("Invalid category!")
         return
+
     print(f"Fetching news for category: {category}")
     raw_news = fetch_news(PROMPTS[category])
     news_list = split_news(raw_news)
@@ -164,13 +168,16 @@ def manual_fetch_post():
         print("Posted successfully:", news_to_post)
     except Exception as e:
         print("Error posting:", e)
-
 # ---------------- Main Flow ----------------
 if __name__ == "__main__":
-    action = input("Enter 'auto' to run automated bot or 'manual' to fetch & post one category: ").strip().lower()
+    import sys
+    action = sys.argv[1] if len(sys.argv) > 1 else "auto"
+    category = sys.argv[2] if len(sys.argv) > 2 else None
+
     if action == "manual":
-        manual_fetch_post()
+        manual_fetch_post(category=category)
     else:
+        # Auto mode remains the same
         today_str = datetime.now().strftime("%Y-%m-%d")
         current_hour = datetime.now().hour
 
