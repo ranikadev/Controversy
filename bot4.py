@@ -26,10 +26,10 @@ LAST_FETCH_FILE = "last_fetch.txt"
 
 # ---------------- Prompts ----------------
 PROMPTS = {
-    "bjp": "give me 9 controversial news each in 200 to 250 characters related to bjp party, Today, in hindi",
-    "congress": "give me 9 controversial news each in 200 to 250 characters related to Congress party, Today, in hindi",
-    "countries": "give me 5 controversial news each in 200 to 250 characters related to countries, Today, in hindi",
-    "others": "give me 9 controversial news each in 200 to 250 characters related to cricket/religion/administration/incident/event, Today, in hindi"
+    "bjp": "give me 4 controversial news each in 200 to 250 characters related to bjp party, Today, in hindi",
+    "congress": "give me 1 controversial news each in 200 to 250 characters related to Congress party, Today, in hindi",
+    "countries": "give me 1 controversial news each in 200 to 250 characters related to countries, Today, in hindi",
+    "others": "give me 4 controversial news each in 200 to 250 characters related to cricket/religion/administration/incident/event, Today, in hindi"
 }
 
 # ---------------- Twitter Setup (v2 API) ----------------
