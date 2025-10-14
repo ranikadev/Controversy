@@ -130,9 +130,7 @@ def post_next():
     print(f"[{datetime.now()}] ℹ️ No new news to post.")
 
 # ---------------- Manual Fetch ----------------
-def manual_fetch_post(category=None):
-    if not category:
-        category = "bjp"  # default
+def manual_fetch_post(category):
     category = category.lower()
     if category not in PROMPTS:
         print("⚠️ Invalid category.")
@@ -141,8 +139,10 @@ def manual_fetch_post(category=None):
     print(f"[{datetime.now()}] 🟡 Manual fetch for '{category}'")
     raw_news = fetch_news(PROMPTS[category])
     news_list = [to_hindi(n) for n in split_news(raw_news)]
+
     if not news_list:
-        print(f"⚠️ No valid news fetched for {category}.")
+        print(f"⚠️ No valid news fetched for {category}, posting default message.")
+        post_tweet("Good day")
         return
 
     save_news(news_list, NEWS_FILES[category])
