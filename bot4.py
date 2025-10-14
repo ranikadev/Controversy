@@ -231,7 +231,7 @@ if __name__ == "__main__":
     if os.path.exists(LAST_FETCH_FILE):
         with open(LAST_FETCH_FILE) as f:
             if f.read().strip() == today:
-                need_fetch = False
+                need_fetch = True
 
     if need_fetch and ((hour == 23 and minute >= 20) or (hour == 23 and minute <= 20)):
         print(f"[{now_ist}] 🔄 Fetching fresh news for all categories...")
