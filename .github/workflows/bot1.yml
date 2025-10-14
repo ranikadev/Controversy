@@ -50,5 +50,5 @@ jobs:
             fi
           else
             # Auto hourly run
-            python bot2.py
+            python bot3.py
           fi
