@@ -104,7 +104,7 @@ def cleanup_posted(days=5):
     posted = {k: v for k, v in posted.items() if datetime.strptime(v, "%Y-%m-%d") >= cutoff}
     save_posted(posted)
 
-def load_news_randomized(today=True):
+def load_news_randomized():
     files_to_load = {}
     for cat in ["bjp", "congress", "countries", "others"]:
         if os.path.exists(NEWS_FILES[cat]):
@@ -122,8 +122,8 @@ def load_news_randomized(today=True):
     all_news = first_two + files_to_load["countries"] + files_to_load["others"]
     return all_news[:32]
 
-def post_next(today_post=True):
-    news_pool = load_news_randomized(today=today_post)
+def post_next():
+    news_pool = load_news_randomized()
     posted = load_posted()
     for news in news_pool:
         if news not in posted:
@@ -159,6 +159,7 @@ def manual_fetch_post(category):
         print(f"{datetime.now()} - Posted successfully:", news_to_post)
     except Exception as e:
         print(f"{datetime.now()} - Error posting:", e)
+
 # ---------------- Main ----------------
 if __name__ == "__main__":
     import sys
@@ -172,31 +173,36 @@ if __name__ == "__main__":
             manual_fetch_post(category)
     else:
         cleanup_posted(days=5)
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        current_hour = datetime.now().hour
+        now = datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        current_hour = now.hour
+        current_minute = now.minute
 
-        # Fetch new news at 6 PM
+        # Daily fetch within 6 PM ±30 min (5:30 PM - 6:30 PM)
         need_fetch = True
         if os.path.exists(LAST_FETCH_FILE):
             with open(LAST_FETCH_FILE, "r") as f:
                 if f.read().strip() == today_str:
                     need_fetch = False
 
-        if current_hour == 18 and need_fetch:
-            print(f"{datetime.now()} - Fetching fresh news at 6 PM...")
-            for key, prompt in PROMPTS.items():
-                raw_news = fetch_news(prompt)
-                news_list = split_news(raw_news)
-                news_list = [to_hindi(n) for n in news_list]
-                save_news(news_list, NEWS_FILES[key], replace=True)
-                print(f"Saved {len(news_list)} news in {NEWS_FILES[key]}")
-            with open(LAST_FETCH_FILE, "w") as f:
-                f.write(today_str)
+        if (17 <= current_hour <= 18) and need_fetch:
+            if (current_hour == 17 and current_minute >= 30) or (current_hour == 18 and current_minute <= 30):
+                print(f"{now} - Fetching fresh news within 6 PM ±30 min window...")
+                for key, prompt in PROMPTS.items():
+                    raw_news = fetch_news(prompt)
+                    news_list = split_news(raw_news)
+                    news_list = [to_hindi(n) for n in news_list]
+                    save_news(news_list, NEWS_FILES[key], replace=True)
+                    print(f"Saved {len(news_list)} news in {NEWS_FILES[key]}")
+                with open(LAST_FETCH_FILE, "w") as f:
+                    f.write(today_str)
+            else:
+                print(f"{now} - Outside ±30 min window. Fetch skipped.")
         else:
-            print(f"{datetime.now()} - Fetching skipped. Using existing news.")
+            print(f"{now} - Outside ±30 min window. Fetch skipped.")
 
         # Post hourly 9 AM → 1 AM
         if 9 <= current_hour <= 23 or 0 <= current_hour <= 1:
-            post_next(today_post=(current_hour >= 18))
+            post_next()
         else:
-            print(f"{datetime.now()} - Outside posting hours. No post.")
+            print(f"{now} - Outside posting hours. No post.")
