@@ -156,20 +156,23 @@ if __name__ == "__main__":
     category = sys.argv[2] if len(sys.argv) > 2 else None
 
     cleanup_posted(days=5)
+
+    if mode == "manual":
+        if not category:
+            print("Usage: python bot2.py manual [bjp|congress|countries|others]")
+        else:
+            # ONLY run manual fetch/post, skip all auto logic
+            manual_fetch_post(category)
+        # exit here to prevent auto-fetch or auto-post
+        sys.exit()
+
+    # ---------------- AUTO MODE ----------------
     now = datetime.now()
     today = now.strftime("%Y-%m-%d")
     hour = now.hour
     minute = now.minute
 
-    # Manual mode
-    if mode == "manual":
-        if not category:
-            print("Usage: python bot2.py manual [bjp|congress|countries|others]")
-        else:
-            manual_fetch_post(category)
-        exit()
-
-    # Auto mode: Fetch at 6 PM ± 30 min once per day
+    # Auto fetch at 6 PM ±30 min
     need_fetch = True
     if os.path.exists(LAST_FETCH_FILE):
         with open(LAST_FETCH_FILE) as f:
