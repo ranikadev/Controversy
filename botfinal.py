@@ -232,6 +232,10 @@ if __name__ == "__main__":
             news_list = split_news(raw_news)
 
             if news_list:
+     # Print all final news items before saving
+                print(f"\n📢 Final news items after splitting for {key}:")
+                for idx, n in enumerate(news_list, 1):
+                print(f"{idx}. {n}")
                 save_news(news_list, NEWS_FILES[key])
                 print(f"✅ Saved {len(news_list)} news for {key}")
                 fetched_any = True
