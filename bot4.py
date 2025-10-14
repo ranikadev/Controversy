@@ -92,12 +92,8 @@ def split_news(raw_news):
         return []
 
     raw_news = raw_news.strip()
-    # Normalize bullet and number patterns
-    raw_news = re.sub(r"[•\-–●▪️]", "\n", raw_news)
+    # Normalize number patterns
     raw_news = re.sub(r"(\d+[\.\)]\s*)", "\n", raw_news)
-    
-    # Split by newline or full stop
-    candidates = re.split(r"[\n।]", raw_news)
     items = [i.strip() for i in candidates if len(i.strip()) > 0]
 
     news_list = []
