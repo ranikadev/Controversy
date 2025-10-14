@@ -85,27 +85,37 @@ def fetch_news(prompt):
 
 def split_news(raw_news):
     """
-    Splits raw news text into 200–250 character chunks.
-    Ensures each news item is in Hindi and non-empty.
+    Improved splitter: handles bullets, numbers, newlines, and long text.
+    Keeps only Hindi sentences of 180–280 characters.
     """
+    if not raw_news:
+        return []
+
     raw_news = raw_news.strip()
-    items = re.split(r'\d+\.\s|[\n]', raw_news)
-    items = [i.strip() for i in items if i.strip()]
+    # Normalize bullet and number patterns
+    raw_news = re.sub(r"[•\-–●▪️]", "\n", raw_news)
+    raw_news = re.sub(r"(\d+[\.\)]\s*)", "\n", raw_news)
+    
+    # Split by newline or full stop
+    candidates = re.split(r"[\n।]", raw_news)
+    items = [i.strip() for i in candidates if len(i.strip()) > 0]
 
     news_list = []
     for i in items:
-        if 200 <= len(i) <= 250:
+        # Clean unwanted symbols and spaces
+        i = re.sub(r"\s+", " ", i)
+        if 180 <= len(i) <= 280:
             news_list.append(i)
-        elif len(i) > 250:
-            while len(i) > 250:
-                chunk = i[:240].rsplit('.', 1)[0] + '.'
-                if len(chunk) < 200:
-                    chunk = i[:250]
+        elif len(i) > 280:
+            # Break long news into chunks
+            while len(i) > 280:
+                chunk = i[:260].rsplit(' ', 1)[0]
                 news_list.append(chunk.strip())
                 i = i[len(chunk):].strip()
-            if 200 <= len(i) <= 250:
+            if 180 <= len(i) <= 280:
                 news_list.append(i)
 
+    # Deduplicate
     return list(dict.fromkeys(news_list))
 
 def save_news(news_list, filename):
@@ -238,6 +248,7 @@ if __name__ == "__main__":
         fetched_any = False
         for key, prompt in PROMPTS.items():
             raw_news = fetch_news(prompt)
+            print(f"\n📜 Raw news for {key}:\n{raw_news[:1000]}\n{'-'*50}")
             if not raw_news:
                 print(f"⚠️ API returned empty news for {key}")
                 continue
