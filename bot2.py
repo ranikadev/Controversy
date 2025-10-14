@@ -130,7 +130,11 @@ def post_next():
     print(f"[{datetime.now()}] ℹ️ No new news to post.")
 
 # ---------------- Manual Fetch ----------------
-def manual_fetch_post(category):
+def manual_fetch_post(category=None):
+    # Default to 'bjp' if no category provided
+    if not category:
+        category = "bjp"
+
     category = category.lower()
     if category not in PROMPTS:
         print("⚠️ Invalid category.")
@@ -160,9 +164,9 @@ if __name__ == "__main__":
     cleanup_posted(days=5)
 
     if mode == "manual":
-        # default to BJP if no category
+        # Only run manual fetch/post
         manual_fetch_post(category)
-        sys.exit()  # skip auto logic
+        sys.exit()
 
     # ---------------- AUTO MODE ----------------
     now = datetime.now()
