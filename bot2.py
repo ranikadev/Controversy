@@ -1,208 +1,154 @@
 import os
-import requests
-from googletrans import Translator
-import re
-import tweepy
-from datetime import datetime, timedelta
-import random
 import json
+import random
+import time
+from datetime import datetime, timedelta
+import requests
+import tweepy
 
-# ---------------- Environment Variables ----------------
-PERPLEXITY_API_KEY = os.environ.get("PERPLEXITY_API_KEY")
-TWITTER_API_KEY = os.environ.get("TWITTER_API_KEY")
-TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET")
-TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
-TWITTER_ACCESS_SECRET = os.environ.get("TWITTER_ACCESS_SECRET")
+# ========== CONFIG ==========
+PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
+TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
+TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
+TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
+TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
 
-# ---------------- Config ----------------
-NEWS_FILES = {
-    "bjp": "bjp_news.txt",
-    "congress": "congress_news.txt",
-    "countries": "countries_news.txt",
-    "others": "others_news.txt"
-}
+# ========== FILES ==========
+NEWS_FILE = "news_data.json"
 POSTED_FILE = "posted_news.json"
-LAST_FETCH_FILE = "last_fetch.txt"
 
+# ========== PROMPTS ==========
 PROMPTS = {
-    "bjp": "give me 9 controversial news each in 200 to 250 characters related to political parties specifically negative for BJP, Today, in hindi",
-    "congress": "give me 9 controversial news each in 200 to 250 characters related to political parties specifically negative for congress, Today, in hindi",
-    "countries": "give me 5 controversial news each in 200 to 250 characters related to countries, Today, in hindi",
-    "others": "give me 9 controversial news each in 200 to 250 characters related to cricket/defence/religion/administration/incident/event, Today, in hindi"
+    "bjp": "give me 9 controversial news each in 200 to 250 cherecters related to political parties specifically negative for BJP, Today, in hindi",
+    "congress": "give me 9 controversial news each in 200 to 250 cherecters related to political parties specifically negative for congress, Today, in hindi",
+    "countries": "give me 5 controversial news each in 200 to 250 cherecters related to counties , Today , in hindi",
+    "others": "give me 9 controversial news each in 200 to 250 cherecters related to cricket/ defence/religion/administration/incident/event, Today , in hindi"
 }
 
-# ---------------- Twitter Setup ----------------
-auth = tweepy.OAuth1UserHandler(
-    TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
-)
-api = tweepy.API(auth)
+# ========== TWITTER AUTH ==========
+def twitter_client():
+    auth = tweepy.OAuth1UserHandler(
+        TWITTER_API_KEY, TWITTER_API_SECRET,
+        TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
+    )
+    return tweepy.API(auth)
 
-translator = Translator()
+# ========== FETCH FROM PERPLEXITY ==========
+def fetch_news(category):
+    print(f"{datetime.now()} - Fetching news for category: {category}")
+    url = "https://api.perplexity.ai/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "sonar",
+        "messages": [{"role": "user", "content": PROMPTS[category]}]
+    }
 
-# ---------------- Utility Functions ----------------
-def is_hindi(text):
-    return any('\u0900' <= ch <= '\u097F' for ch in text)
+    response = requests.post(url, headers=headers, json=payload)
+    data = response.json()
 
-def to_hindi(text):
-    if not is_hindi(text):
-        try:
-            return translator.translate(text, dest='hi').text
-        except:
-            return text
-    return text
+    try:
+        text = data["choices"][0]["message"]["content"]
+    except Exception as e:
+        print("Error parsing Perplexity response:", e)
+        return []
 
-def split_news(raw_news):
-    raw_news = raw_news.strip()
-    items = re.split(r'\d+\.\s', raw_news)
-    items = [i.strip() for i in items if i.strip()]
-    if len(items) < 2:
-        items = [s.strip() for s in re.split(r'\n|(?<=\.)\s', raw_news) if 200 <= len(s.strip()) <= 250]
-    return [i for i in items if 200 <= len(i) <= 250]
+    # Split and clean news
+    news_items = [n.strip() for n in text.split("\n") if len(n.strip()) > 150]
+    print(f"✅ {len(news_items)} news fetched for {category}")
+    return news_items
 
-def fetch_news(prompt):
-    url = "https://api.perplexity.ai/sonar"
-    headers = {"Authorization": f"Bearer {PERPLEXITY_API_KEY}", "Content-Type": "application/json"}
-    payload = {"query": prompt}
-    response = requests.post(url, json=payload, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        if "answer" in data:
-            return data["answer"]
-    return ""
-
-def save_news(news_list, filename, replace=True):
-    if replace:
-        with open(filename, "w", encoding="utf-8") as f:
-            for news in news_list:
-                f.write(news + "\n")
-    else:
-        existing = set()
-        if os.path.exists(filename):
-            with open(filename, "r", encoding="utf-8") as f:
-                existing = set(f.read().splitlines())
-        with open(filename, "a", encoding="utf-8") as f:
-            for news in news_list:
-                if news not in existing:
-                    f.write(news + "\n")
-
-def load_posted():
-    if os.path.exists(POSTED_FILE):
-        with open(POSTED_FILE, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except:
-                return {}
+# ========== LOAD / SAVE ==========
+def load_json(path):
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
     return {}
 
-def save_posted(posted):
-    with open(POSTED_FILE, "w", encoding="utf-8") as f:
-        json.dump(posted, f, ensure_ascii=False, indent=2)
+def save_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-def cleanup_posted(days=5):
-    posted = load_posted()
-    cutoff = datetime.now() - timedelta(days=days)
-    posted = {k: v for k, v in posted.items() if datetime.strptime(v, "%Y-%m-%d") >= cutoff}
-    save_posted(posted)
-
-def load_news_randomized():
-    files_to_load = {}
-    for cat in ["bjp", "congress", "countries", "others"]:
-        if os.path.exists(NEWS_FILES[cat]):
-            with open(NEWS_FILES[cat], "r", encoding="utf-8") as f:
-                lines = [line.strip() for line in f if len(line.strip()) >= 150]
-                random.shuffle(lines)
-                files_to_load[cat] = lines
-        else:
-            files_to_load[cat] = []
-
-    # Randomize between BJP & Congress
-    first_two = files_to_load["bjp"] + files_to_load["congress"]
-    random.shuffle(first_two)
-
-    all_news = first_two + files_to_load["countries"] + files_to_load["others"]
-    return all_news[:32]
-
-def post_next():
-    news_pool = load_news_randomized()
-    posted = load_posted()
-    for news in news_pool:
-        if news not in posted:
-            try:
-                api.update_status(news)
-                print(f"{datetime.now()} - Posted:", news)
-                posted[news] = datetime.now().strftime("%Y-%m-%d")
-                save_posted(posted)
-            except Exception as e:
-                print("Error posting:", e)
-            break
-    else:
-        print(f"{datetime.now()} - No new news to post.")
-
-# ---------------- Manual Fetch & Post ----------------
-def manual_fetch_post(category):
-    category = category.lower()
-    if category not in PROMPTS:
-        print("Invalid category!")
-        return
-    print(f"{datetime.now()} - Manual fetch for category: {category}")
-    raw_news = fetch_news(PROMPTS[category])
-    news_list = split_news(raw_news)
-    news_list = [to_hindi(n) for n in news_list]
-    if not news_list:
-        print(f"{datetime.now()} - No news fetched for {category}.")
-        return
-    save_news(news_list, NEWS_FILES[category], replace=True)
-    print(f"{datetime.now()} - Saved {len(news_list)} news in {NEWS_FILES[category]}")
-    news_to_post = random.choice(news_list)
+# ========== POST TO TWITTER ==========
+def post_to_twitter(api, text):
     try:
-        api.update_status(news_to_post)
-        print(f"{datetime.now()} - Posted successfully:", news_to_post)
+        api.update_status(text)
+        print(f"🟢 Posted: {text[:40]}...")
+        return True
     except Exception as e:
-        print(f"{datetime.now()} - Error posting:", e)
+        print(f"❌ Failed to post: {e}")
+        return False
 
-# ---------------- Main ----------------
-if __name__ == "__main__":
-    import sys
-    mode = sys.argv[1].lower() if len(sys.argv) > 1 else "auto"
-    category = sys.argv[2] if len(sys.argv) > 2 else None
+# ========== CLEANUP ==========
+def cleanup_posted(days=5):
+    posted = load_json(POSTED_FILE)
+    now = datetime.utcnow()
+    for date_str in list(posted.keys()):
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        if (now - dt).days > days:
+            del posted[date_str]
+    save_json(POSTED_FILE, posted)
 
-    if mode == "manual":
-        if not category:
-            print("Please provide category for manual mode: bjp/congress/countries/others")
-        else:
-            manual_fetch_post(category)
-    else:
-        cleanup_posted(days=5)
-        now = datetime.now()
-        today_str = now.strftime("%Y-%m-%d")
-        current_hour = now.hour
-        current_minute = now.minute
+# ========== MAIN LOGIC ==========
+def main(mode="auto", category=None):
+    api = twitter_client()
+    cleanup_posted(days=5)
 
-        # Daily fetch within 6 PM ±30 min (5:30 PM - 6:30 PM)
-        need_fetch = True
-        if os.path.exists(LAST_FETCH_FILE):
-            with open(LAST_FETCH_FILE, "r") as f:
-                if f.read().strip() == today_str:
-                    need_fetch = False
+    # Convert to IST
+    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    today_str = now.strftime("%Y-%m-%d")
+    current_hour = now.hour
+    current_minute = now.minute
 
-        if (17 <= current_hour <= 18) and need_fetch:
-            if (current_hour == 17 and current_minute >= 30) or (current_hour == 18 and current_minute <= 30):
-                print(f"{now} - Fetching fresh news within 6 PM ±30 min window...")
-                for key, prompt in PROMPTS.items():
-                    raw_news = fetch_news(prompt)
-                    news_list = split_news(raw_news)
-                    news_list = [to_hindi(n) for n in news_list]
-                    save_news(news_list, NEWS_FILES[key], replace=True)
-                    print(f"Saved {len(news_list)} news in {NEWS_FILES[key]}")
-                with open(LAST_FETCH_FILE, "w") as f:
-                    f.write(today_str)
-            else:
-                print(f"{now} - Outside ±30 min window. Fetch skipped.")
+    news_data = load_json(NEWS_FILE)
+    posted = load_json(POSTED_FILE)
+
+    # ---- MANUAL MODE ----
+    if mode == "manual" and category:
+        print(f"Manual fetch for {category}")
+        news_data[category] = fetch_news(category)
+        save_json(NEWS_FILE, news_data)
+        if news_data[category]:
+            news = random.choice(news_data[category])
+            if post_to_twitter(api, news):
+                posted.setdefault(today_str, []).append(news)
+                save_json(POSTED_FILE, posted)
+        return
+
+    # ---- AUTO MODE ----
+    # Only fetch new news at 6 PM ± 30 min IST
+    if 17 <= current_hour <= 18 or (current_hour == 19 and current_minute <= 30):
+        if abs((current_hour * 60 + current_minute) - (18 * 60)) <= 30:
+            print("🕕 Within 6PM ±30min window — fetching all categories.")
+            for cat in PROMPTS.keys():
+                news_data[cat] = fetch_news(cat)
+            save_json(NEWS_FILE, news_data)
         else:
             print(f"{now} - Outside ±30 min window. Fetch skipped.")
+    else:
+        print(f"{now} - Outside ±30 min window. Fetch skipped.")
 
-        # Post hourly 9 AM → 1 AM
-        if 9 <= current_hour <= 23 or 0 <= current_hour <= 1:
-            post_next()
-        else:
-            print(f"{now} - Outside posting hours. No post.")
+    # Merge all categories (1→2→3→4)
+    merged_news = []
+    for cat in ["bjp", "congress", "countries", "others"]:
+        merged_news.extend(news_data.get(cat, []))
+
+    # Post if available and not already posted
+    for news in merged_news:
+        if len(news) < 150 or news in sum(posted.values(), []):
+            continue
+        if post_to_twitter(api, news):
+            posted.setdefault(today_str, []).append(news)
+            save_json(POSTED_FILE, posted)
+            break
+    else:
+        print(f"{now} - No new news to post.")
+
+# ========== ENTRY POINT ==========
+if __name__ == "__main__":
+    import sys
+    mode = sys.argv[1] if len(sys.argv) > 1 else "auto"
+    category = sys.argv[2] if len(sys.argv) > 2 else None
+    main(mode, category)
