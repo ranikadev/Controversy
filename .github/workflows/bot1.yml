@@ -1,4 +1,4 @@
-name: Bot2 Scheduler
+name: Bot3 Scheduler
 
 on:
   # Manual trigger
@@ -44,4 +44,4 @@ jobs:
         run: |
           MODE="${{ github.event.inputs.mode || 'auto' }}"
           CATEGORY="${{ github.event.inputs.category || '' }}"
-          python bot1.py $MODE $CATEGORY
+          python bot3.py $MODE $CATEGORY
