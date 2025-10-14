@@ -144,22 +144,21 @@ def manual_fetch_post(category):
     if category not in PROMPTS:
         print("Invalid category!")
         return
-    print(f"Fetching news for category: {category}")
+    print(f"{datetime.now()} - Manual fetch for category: {category}")
     raw_news = fetch_news(PROMPTS[category])
     news_list = split_news(raw_news)
     news_list = [to_hindi(n) for n in news_list]
     if not news_list:
-        print("No news fetched.")
+        print(f"{datetime.now()} - No news fetched for {category}.")
         return
     save_news(news_list, NEWS_FILES[category], replace=True)
-    print(f"Saved {len(news_list)} news in {NEWS_FILES[category]}")
+    print(f"{datetime.now()} - Saved {len(news_list)} news in {NEWS_FILES[category]}")
     news_to_post = random.choice(news_list)
     try:
         api.update_status(news_to_post)
         print(f"{datetime.now()} - Posted successfully:", news_to_post)
     except Exception as e:
-        print("Error posting:", e)
-
+        print(f"{datetime.now()} - Error posting:", e)
 # ---------------- Main ----------------
 if __name__ == "__main__":
     import sys
