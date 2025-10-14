@@ -67,8 +67,15 @@ def fetch_news(prompt):
     headers = {"Authorization": f"Bearer {PERPLEXITY_API_KEY}", "Content-Type": "application/json"}
     payload = {"query": prompt}
     try:
-        response = requests.post(url, json=payload, headers=headers)
-        data = response.json()
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        if response.status_code != 200:
+            print(f"❌ API returned status {response.status_code}")
+            return ""
+        try:
+            data = response.json()
+        except ValueError:
+            print("❌ API returned invalid JSON")
+            return ""
         return data.get("answer", "")
     except Exception as e:
         print("❌ Fetch error:", e)
