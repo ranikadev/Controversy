@@ -25,10 +25,10 @@ LAST_FETCH_FILE = "last_fetch.txt"
 
 # ---------------- Prompts ----------------
 PROMPTS = {
-    "bjp": "give me 9 controversial news each in 200 to 250 characters related negetively to bjp party,Today or yesterday's news, in hindi",
-    "congress": "give me 9 controversial news each in 200 to 250 characters related negetively to Congress party, Today or yesterday's news , in hindi",
-    "countries": "give me 5 controversial news each in 200 to 250 characters related to countries, Today, in hindi",
-    "others": "give me 4 controversial news each in 200 to 250 characters related to cricket/religion/administration/incident/event, Today, in hindi"
+    "bjp": "give me 9 controversial news each in 250-270 characters related negetively to bjp party,Today or yesterday's news, in hindi",
+    "congress": "give me 9 controversial news each in 250-270 characters related negetively to Congress party, Today or yesterday's news , in hindi",
+    "countries": "give me 5 controversial news each in 250-270 characters related to countries, Today, in hindi",
+    "others": "give me 4 controversial news each in 250-270 characters related to cricket/religion/administration/incident/event, Today, in hindi"
 }
 
 # ---------------- Twitter Setup (v2 API) ----------------
@@ -219,7 +219,7 @@ if __name__ == "__main__":
             if f.read().strip() == today:
                 need_fetch = False
 
-    if need_fetch and ((hour == 16 and minute >= 40) or (hour == 17 and minute <= 10 )):
+    if need_fetch and ((hour == 8 and minute >= 40) or (hour == 9 and minute <= 20 )):
         print(f"[{now_ist}] 🔄 Fetching fresh news for all categories...")
         fetched_any = False
         for key, prompt in PROMPTS.items():
