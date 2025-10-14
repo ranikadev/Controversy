@@ -72,7 +72,7 @@ def fetch_news(prompt):
         ]
     }
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=20)
+        response = requests.post(url, headers=headers, json=data, timeout=2000)
         if response.status_code != 200:
             print(f"❌ API returned status {response.status_code}")
             return ""
