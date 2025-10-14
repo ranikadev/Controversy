@@ -130,7 +130,9 @@ def post_next():
     print(f"[{datetime.now()}] ℹ️ No new news to post.")
 
 # ---------------- Manual Fetch ----------------
-def manual_fetch_post(category):
+def manual_fetch_post(category=None):
+    if not category:
+        category = "bjp"  # default
     category = category.lower()
     if category not in PROMPTS:
         print("⚠️ Invalid category.")
@@ -158,13 +160,9 @@ if __name__ == "__main__":
     cleanup_posted(days=5)
 
     if mode == "manual":
-        if not category:
-            print("Usage: python bot2.py manual [bjp|congress|countries|others]")
-        else:
-            # ONLY run manual fetch/post, skip all auto logic
-            manual_fetch_post(category)
-        # exit here to prevent auto-fetch or auto-post
-        sys.exit()
+        # default to BJP if no category
+        manual_fetch_post(category)
+        sys.exit()  # skip auto logic
 
     # ---------------- AUTO MODE ----------------
     now = datetime.now()
@@ -172,16 +170,16 @@ if __name__ == "__main__":
     hour = now.hour
     minute = now.minute
 
-    # Auto fetch at 6 PM ±30 min
+    # Auto fetch at 8 PM ±50 min (7:10 PM → 8:50 PM)
     need_fetch = True
     if os.path.exists(LAST_FETCH_FILE):
         with open(LAST_FETCH_FILE) as f:
             if f.read().strip() == today:
                 need_fetch = False
 
-    if (17 <= hour <= 18) and need_fetch:
-        if (hour == 17 and minute >= 30) or (hour == 18 and minute <= 30):
-            print(f"[{now}] 🔄 Fetching fresh news within ±30 min of 6 PM...")
+    if (19 <= hour <= 20) and need_fetch:
+        if (hour == 19 and minute >= 10) or (hour == 20 and minute <= 50):
+            print(f"[{now}] 🔄 Fetching fresh news within ±50 min of 8 PM...")
             for key, prompt in PROMPTS.items():
                 raw_news = fetch_news(prompt)
                 news_list = [to_hindi(n) for n in split_news(raw_news)]
@@ -190,7 +188,7 @@ if __name__ == "__main__":
             with open(LAST_FETCH_FILE, "w") as f:
                 f.write(today)
         else:
-            print(f"[{now}] ⏰ Outside ±30 min window — fetch skipped.")
+            print(f"[{now}] ⏰ Outside ±50 min window — fetch skipped.")
     else:
         print(f"[{now}] ⏰ Fetch skipped (already done or not in window).")
 
