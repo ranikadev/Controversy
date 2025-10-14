@@ -12,10 +12,10 @@ on:
         description: 'Category for manual mode (bjp/congress/countries/others)'
         required: false
 
-  # Scheduled auto run: 8 PM IST ±50 min (7:10 PM → 8:50 PM IST)
-  # Converted to UTC: 14:10–15:50 UTC
+  # Scheduled auto run: Every hour 9 AM – 1 AM IST
+  # Converted to UTC: 03:30 – 19:30 UTC
   schedule:
-    - cron: '10,20,30,40,50,0 14-15 * * *' # Every 10 min within window
+    - cron: '30 3-19 * * *' # At minute 30 past every hour from UTC 3 to 19
 
 jobs:
   run-bot:
