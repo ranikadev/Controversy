@@ -160,7 +160,7 @@ def auto_run():
     now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
     hour = now_ist.hour
 
-    if 9 <= hour or hour <= 1:  # 9 AM – 1 AM IST
+    if 3 <= hour or hour <= 1:  # 9 AM – 1 AM IST
         print(f"[{now_ist}] 🔄 Fetching fresh political news...")
         raw = fetch_news()
         if raw:
