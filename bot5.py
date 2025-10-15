@@ -5,6 +5,7 @@ import re
 import json
 import random
 from datetime import datetime, timedelta
+import sys
 
 # ---------------- Environment Variables ----------------
 
@@ -43,6 +44,10 @@ client = tweepy.Client(
     access_token=TWITTER_ACCESS_TOKEN,
     access_token_secret=TWITTER_ACCESS_SECRET
 )
+
+# ---------------- Global Flag for Dry Run ----------------
+
+DRY_RUN = False  # Set to True for manual mode (no actual tweeting)
 
 # ---------------- Helper Functions ----------------
 
@@ -148,12 +153,33 @@ def load_all_news():
     return all_news[:32]
 
 def post_tweet(text):
+    global DRY_RUN
+    # Verify env vars (one-time check if not dry run)
+    if not DRY_RUN and (TWITTER_API_KEY is None or TWITTER_API_SECRET is None or TWITTER_ACCESS_TOKEN is None or TWITTER_ACCESS_SECRET is None):
+        print("❌ CRITICAL: Twitter env vars missing! Check .env or export:")
+        print(f"  TWITTER_API_KEY: {'SET' if TWITTER_API_KEY else 'MISSING'}")
+        print(f"  TWITTER_API_SECRET: {'SET' if TWITTER_API_SECRET else 'MISSING'}")
+        print(f"  TWITTER_ACCESS_TOKEN: {'SET' if TWITTER_ACCESS_TOKEN else 'MISSING'}")
+        print(f"  TWITTER_ACCESS_SECRET: {'SET' if TWITTER_ACCESS_SECRET else 'MISSING'}")
+        return False
+
+    print(f"[{datetime.now()}] 🔄 Attempting to post ({len(text)} chars): {text[:50]}...")
+    if DRY_RUN:
+        print(f"[{datetime.now()}] ℹ️ DRY RUN: Would post tweet - '{text[:100]}...' (no API call)")
+        return True  # Simulate success for dry run
+
     try:
-        client.create_tweet(text=text)
-        print(f"[{datetime.now()}] ✅ Posted: {text[:70]}...")
+        response = client.create_tweet(text=text)
+        print(f"[{datetime.now()}] ✅ Posted successfully! Tweet ID: {response.data['id']}")
         return True
+    except tweepy.TweepyException as e:
+        print(f"❌ Tweepy error: Type={type(e).__name__}, Message={str(e)}")
+        if hasattr(e, 'response') and e.response:
+            print(f"  HTTP Status: {e.response.status_code}")
+            print(f"  Response: {e.response.text[:200]}...")
+        return False
     except Exception as e:
-        print(f"❌ Tweet failed: {e}")
+        print(f"❌ Unexpected error: Type={type(e).__name__}, Message={str(e)}")
         return False
 
 def post_next():
@@ -182,12 +208,15 @@ def post_next():
     post_tweet(fallback_news)
 
 def manual_fetch_post(category=None):
+    global DRY_RUN
+    DRY_RUN = True  # Enable dry run for manual mode
+
     if not category:
         category = "bjp"
 
     category = category.lower()  
     if category not in PROMPTS:  
-        print("⚠️ Invalid category.")  
+        print("⚠️ Invalid category.")
         return  
 
     print(f"[{datetime.now()}] 🟡 Manual fetch for '{category}'")  
@@ -198,6 +227,8 @@ def manual_fetch_post(category=None):
         post_tweet("Good day")  
         return  
 
+    print(f"📜 Raw news ({len(raw_news)} chars): {raw_news}")
+
     news_list = split_news(raw_news)  
 
     if not news_list:  
@@ -205,17 +236,18 @@ def manual_fetch_post(category=None):
         post_tweet("Good day")  
         return  
 
+    print(f"📄 Split/processed news ({len(news_list[0])} chars): {news_list[0]}")
+
     save_news(news_list, NEWS_FILES[category])  
     print(f"✅ Saved {len(news_list)} news for {category}")  
 
     chosen = random.choice(news_list)  
+    print(f"🎯 Selected to post: {chosen[:50]}... ({len(chosen)} chars)")
     post_tweet(chosen)
 
 # ---------------- Main Scheduler ----------------
 
 if __name__ == "__main__":
-    import sys
-
     mode = sys.argv[1].lower() if len(sys.argv) > 1 else "auto"  
     category = sys.argv[2] if len(sys.argv) > 2 else None  
 
