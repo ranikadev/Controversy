@@ -33,6 +33,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install requests googletrans==4.0.0-rc1 tweepy
+      - name: Install dependencies
+        run: |
+            pip install tweepy==4.14.0 requests==2.31.0 python-dotenv==1.0.0
 
       - name: Run botfinal
         env:
