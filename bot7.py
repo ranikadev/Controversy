@@ -47,7 +47,7 @@ def get_trending_keyword_from_x(category, date_str=None):
     """
     if date_str is None:
         now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
-        date_str = now_ist.strftime("%Y-%m-%d")  # For since:YYYY-MM-DD
+        date_str = now_ist.strftime("%Y-%m-%d")
 
     if not TWITTER_BEARER_TOKEN:
         print("⚠️ TWITTER_BEARER_TOKEN missing. Check .env or X Developer Portal.")
@@ -65,43 +65,54 @@ def get_trending_keyword_from_x(category, date_str=None):
     # Separate client for search with Bearer Token
     search_client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 
-    try:
-        # Real X API search (top 5 recent posts)
-        tweets = search_client.search_recent_tweets(
-            query=query,
-            max_results=5,
-            tweet_fields=['public_metrics', 'created_at'],
-            sort_order='relevancy'
-        )
-        if tweets.data:
-            contents = [tweet.text.lower() for tweet in tweets.data]
-            all_text = ' '.join(contents)
-            words = re.findall(r'\b\w+\b', all_text)  # Handles Hindi/English
-            
-            # Stop words (English + Hindi)
-            stop_words = {
-                'the', 'and', 'in', 'to', 'of', 'a', 'is', 'for', 'on', 'with', 'by', 'as', 'at', 'be', 'this', 'that', 'it', 'from',
-                'में', 'के', 'से', 'का', 'की', 'है', 'को', 'पर', 'ने', 'भी'
-            }
-            filtered_words = [w for w in words if w not in stop_words and len(w) >= 4]
-            
-            if filtered_words:
-                common = Counter(filtered_words).most_common(1)
-                keyword = common[0][0] if common else ""
-                print(f"🔍 X Trending Keyword for {category}: '{keyword}' (from top posts: {[t.text[:50] for t in tweets.data]})")
-                return keyword if len(keyword) <= 20 else ""
-        else:
-            print(f"⚠️ No tweets found for query: {query}")
+    for attempt in range(3):
+        try:
+            # Real X API search (top 10 recent posts)
+            tweets = search_client.search_recent_tweets(
+                query=query,
+                max_results=10,  # Fixed: 10 is minimum allowed
+                tweet_fields=['public_metrics', 'created_at'],
+                sort_order='relevancy'
+            )
+            if tweets.data:
+                contents = [tweet.text.lower() for tweet in tweets.data]
+                all_text = ' '.join(contents)
+                words = re.findall(r'\b\w+\b', all_text)  # Handles Hindi/English
+                
+                # Stop words (English + Hindi)
+                stop_words = {
+                    'the', 'and', 'in', 'to', 'of', 'a', 'is', 'for', 'on', 'with', 'by', 'as', 'at', 'be', 'this', 'that', 'it', 'from',
+                    'में', 'के', 'से', 'का', 'की', 'है', 'को', 'पर', 'ने', 'भी'
+                }
+                filtered_words = [w for w in words if w not in stop_words and len(w) >= 4]
+                
+                if filtered_words:
+                    common = Counter(filtered_words).most_common(1)
+                    keyword = common[0][0] if common else ""
+                    print(f"🔍 X Trending Keyword for {category}: '{keyword}' (from top posts: {[t.text[:50] for t in tweets.data]})")
+                    return keyword if len(keyword) <= 20 else ""
+                else:
+                    print(f"⚠️ No valid keywords found for query: {query}")
+                    return ""
+            else:
+                print(f"⚠️ No tweets found for query: {query}")
+                return ""
+        except tweepy.TweepyException as e:
+            status = getattr(e.response, 'status_code', 'Unknown')
+            print(f"⚠️ X API error (attempt {attempt+1}): Status={status}, Message={str(e)}")
+            if hasattr(e.response, 'text'):
+                print(f"  Response: {e.response.text[:200]}...")
+            if status == 429:  # Rate limit
+                print(f"  Rate limit headers: {getattr(e.response, 'headers', {})}")
+                if attempt < 2:
+                    time.sleep(15 * (2 ** attempt))  # Exponential backoff: 15s, 30s
+                else:
+                    return ""
+            else:
+                return ""  # Exit on non-429 errors (e.g., 400, 401)
+        except Exception as e:
+            print(f"⚠️ X keyword fetch error (attempt {attempt+1}): {e}")
             return ""
-    except tweepy.TweepyException as e:
-        status = getattr(e.response, 'status_code', 'Unknown')
-        print(f"⚠️ X API error: Status={status}, Message={str(e)}")
-        if hasattr(e.response, 'text'):
-            print(f"  Response: {e.response.text[:200]}...")
-        return ""
-    except Exception as e:
-        print(f"⚠️ X keyword fetch error: {e}")
-        return ""
 
 def generate_prompt(category, date_str=None):
     """
