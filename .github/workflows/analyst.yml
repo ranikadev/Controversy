@@ -1,0 +1,43 @@
+name: analyst Scheduler
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode: auto/manual'
+        required: true
+        default: 'auto'
+
+  # Scheduled auto run: Every hour 9 AM – 1 AM IST
+  # Converted to UTC: 03:30 – 19:30 UTC
+  schedule:
+    - cron: '30 3-19 * * *'  # Runs hourly between 9 AM–1 AM IST
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install tweepy==4.14.0 requests==2.31.0 python-dotenv==1.0.0
+
+      - name: Run bot
+        env:
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+        run: |
+          MODE="${{ github.event.inputs.mode || 'auto' }}"
+          python analyst.py $MODE
