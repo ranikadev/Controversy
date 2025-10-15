@@ -30,9 +30,9 @@ LAST_CYCLE_DAY_FILE = "last_cycle_day.txt"
 # ---------------- Prompts ----------------
 
 PROMPTS = {
-    "bjp": "Give one critical political controversy for today related to BJP in exactly 260 characters, in Hindi.",
-    "congress": "Give one critical political controversy for today related to Congress in exactly 260 characters, in Hindi.",
-    "countries": "Give one critical political controversy for today related to countries in exactly 260 characters, in Hindi.",
+    "bjp": "Give one negetive political controversial today's news involving BJP or it's leaders in exactly 260 characters, in Hindi.",
+    "congress": "Give one negetive political controversial today's news involving congress or it's leaders in exactly 260 characters, in Hindi.",
+    "countries": "Give one controversial international relations for today's news related to countries in exactly 260 characters, in Hindi.",
     "others": "Give one critical political controversy for today related to religious context in exactly 260 characters, in Hindi."
 }
 
