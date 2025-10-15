@@ -194,7 +194,7 @@ def auto_run():
     hour = now_ist.hour
 
     if 4 <= hour <= 23:  # 9 AM – 11 PM IST
-        post_main_news()        # 1 main post/day
+       # post_main_news()        # 1 main post/day
         reply_to_next()         # 1 reply per run
     else:
         print(f"[{now_ist}] 💤 Outside posting hours (9 AM–11 PM IST).")
