@@ -102,9 +102,9 @@ def split_news(raw_news):
     raw_news = re.sub(r'\s+', ' ', raw_news).strip()
 
     # Ensure length <275 and target ~260 by trimming if necessary
-    if len(raw_news) > 260:
+    if len(raw_news) > 273:
         # Prefer sentence boundary first (Hindi '।' or English '.!?')
-        trimmed = raw_news[:260].strip()
+        trimmed = raw_news[:273].strip()
         last_sentence = max(
             trimmed.rfind('।'), trimmed.rfind('।'), trimmed.rfind('?'), trimmed.rfind('!'), -1
         )
