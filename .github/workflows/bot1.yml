@@ -44,4 +44,4 @@ jobs:
         run: |
           MODE="${{ github.event.inputs.mode || 'auto' }}"
           CATEGORY="${{ github.event.inputs.category || '' }}"
-          python bot5.py $MODE $CATEGORY
+          python bot6.py $MODE $CATEGORY
