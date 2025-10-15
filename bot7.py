@@ -47,20 +47,20 @@ def get_trending_keyword_from_x(category, date_str=None):
     """
     if date_str is None:
         now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
-        date_str = now_ist.strftime("%Y-%m-%d")
+        date_str = now_ist.strftime("%Y-%m-%d")  # For logging, not query
 
     if not TWITTER_BEARER_TOKEN:
         print("⚠️ TWITTER_BEARER_TOKEN missing. Check .env or X Developer Portal.")
         return ""
 
-    # Query map for X search
+    # Query map for X search (removed 'since:')
     query_map = {
-        "bjp": f"BJP politics India since:{date_str}",
-        "congress": f"Congress politics India since:{date_str}",
-        "countries": f"international politics countries since:{date_str}",
-        "others": f"religious controversy India since:{date_str}"
+        "bjp": "BJP politics India",
+        "congress": "Congress politics India",
+        "countries": "international politics countries",
+        "others": "religious controversy India"
     }
-    query = query_map.get(category.lower(), f"politics India since:{date_str}")
+    query = query_map.get(category.lower(), "politics India")
 
     # Separate client for search with Bearer Token
     search_client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
@@ -70,7 +70,7 @@ def get_trending_keyword_from_x(category, date_str=None):
             # Real X API search (top 10 recent posts)
             tweets = search_client.search_recent_tweets(
                 query=query,
-                max_results=10,  # Fixed: 10 is minimum allowed
+                max_results=10,
                 tweet_fields=['public_metrics', 'created_at'],
                 sort_order='relevancy'
             )
@@ -103,9 +103,14 @@ def get_trending_keyword_from_x(category, date_str=None):
             if hasattr(e.response, 'text'):
                 print(f"  Response: {e.response.text[:200]}...")
             if status == 429:  # Rate limit
-                print(f"  Rate limit headers: {getattr(e.response, 'headers', {})}")
+                headers = getattr(e.response, 'headers', {})
+                print(f"  Rate limit headers: {headers}")
+                reset_time = headers.get('x-rate-limit-reset', None)
+                if reset_time:
+                    reset_dt = datetime.fromtimestamp(int(reset_time))
+                    print(f"  Rate limit resets at: {reset_dt} UTC")
                 if attempt < 2:
-                    time.sleep(15 * (2 ** attempt))  # Exponential backoff: 15s, 30s
+                    time.sleep(15 * (2 ** attempt))  # 15s, 30s, 60s
                 else:
                     return ""
             else:
