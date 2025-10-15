@@ -14,6 +14,7 @@ TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
+TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 
 # ---------------- File Paths ----------------
 POSTED_FILE = "posted_news.json"
@@ -21,6 +22,7 @@ REPLY_QUEUE_FILE = "reply_queue.json"
 
 # ---------------- Twitter Setup ----------------
 client = tweepy.Client(
+    bearer_token=TWITTER_BEARER_TOKEN,
     consumer_key=TWITTER_API_KEY,
     consumer_secret=TWITTER_API_SECRET,
     access_token=TWITTER_ACCESS_TOKEN,
