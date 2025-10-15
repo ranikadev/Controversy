@@ -7,8 +7,12 @@ import random
 from datetime import datetime, timedelta
 import sys
 from collections import Counter
-from dotenv import load_dotenv
 import time
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:
+    print("⚠️ python-dotenv not installed. Run 'pip install python-dotenv' or set env vars manually.")
+    sys.exit(1)
 
 # Load environment variables from .env
 load_dotenv()
@@ -20,7 +24,7 @@ TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
-TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")  # New for search
+TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 
 # ---------------- File Paths ----------------
 
@@ -44,6 +48,10 @@ def get_trending_keyword_from_x(category, date_str=None):
     if date_str is None:
         now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
         date_str = now_ist.strftime("%Y-%m-%d")  # For since:YYYY-MM-DD
+
+    if not TWITTER_BEARER_TOKEN:
+        print("⚠️ TWITTER_BEARER_TOKEN missing. Check .env or X Developer Portal.")
+        return ""
 
     # Query map for X search
     query_map = {
@@ -80,10 +88,14 @@ def get_trending_keyword_from_x(category, date_str=None):
             if filtered_words:
                 common = Counter(filtered_words).most_common(1)
                 keyword = common[0][0] if common else ""
-                print(f"🔍 X Trending Keyword for {category}: '{keyword}' (from top posts)")
+                print(f"🔍 X Trending Keyword for {category}: '{keyword}' (from top posts: {[t.text[:50] for t in tweets.data]})")
                 return keyword if len(keyword) <= 20 else ""
+        else:
+            print(f"⚠️ No tweets found for query: {query}")
+            return ""
     except tweepy.TweepyException as e:
-        print(f"⚠️ X API error: Status={getattr(e.response, 'status_code', 'Unknown')}, Message={str(e)}")
+        status = getattr(e.response, 'status_code', 'Unknown')
+        print(f"⚠️ X API error: Status={status}, Message={str(e)}")
         if hasattr(e.response, 'text'):
             print(f"  Response: {e.response.text[:200]}...")
         return ""
@@ -124,7 +136,7 @@ client = tweepy.Client(
 
 # ---------------- Global Flag for Dry Run ----------------
 
-DRY_RUN = False  # Set to True for manual mode
+DRY_RUN = False
 
 # ---------------- Helper Functions ----------------
 
@@ -333,7 +345,6 @@ if __name__ == "__main__":
         manual_fetch_post(category)
         sys.exit()
 
-    # ---------------- AUTO MODE ----------------
     now_utc = datetime.utcnow()
     now_ist = now_utc + timedelta(hours=5, minutes=30)
     hour = now_ist.hour
