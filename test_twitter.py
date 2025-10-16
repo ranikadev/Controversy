@@ -14,16 +14,40 @@ if not USERNAME:
     raise ValueError('Missing username')
 
 # API call
-url = f'https://api.twitterapi.io/twitter/user/last_tweets?userName={USERNAME}'
+url = f'https://api.twitterapi.io/twitter/user/info?userName={USERNAME}
 headers = {'X-API-Key': API_KEY}
 
+# ... (existing imports and validations up to headers = ...)
+
 try:
-    response = requests.get(url, headers=headers)
-    print(f"Status Code: {response.status_code}")
-    print(f"Full Response: {json.dumps(response.json(), indent=2)}")  # Pretty-print JSON for logs
+    # Determine user ID
+    user_id = os.getenv('USER_ID')
+    if not user_id:
+        # Fetch user ID from username
+        info_url = f'https://api.twitterapi.io/twitter/user/info?userName={USERNAME}'
+        info_response = requests.get(info_url, headers=headers)
+        print(f"User Info Status: {info_response.status_code}")
+        print(f"Full User Info Response: {json.dumps(info_response.json(), indent=2)}")
+        if info_response.status_code != 200:
+            print(f"User Info Error: {info_response.text}")
+            sys.exit(1)
+        info_data = info_response.json()
+        user_id = info_data.get('user', {}).get('id')
+        if not user_id:
+            raise ValueError('User ID not found')
+    else:
+        print(f"Using provided User ID: {user_id}")
     
-    response.raise_for_status()  # Raises an HTTPError for bad responses
+    # API call for tweets using userId
+    url = f'https://api.twitterapi.io/twitter/user/last_tweets?userId={user_id}'
+    response = requests.get(url, headers=headers)
+    print(f"Tweets Status: {response.status_code}")
+    print(f"Full Tweets Response: {json.dumps(response.json(), indent=2)}")
+    
+    response.raise_for_status()
     data = response.json()
+    
+    # ... (rest unchanged: extract tweet_ids, print results, except blocks)
     
     # Extract tweet IDs safely
     tweets = data.get('tweets', [])
