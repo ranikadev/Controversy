@@ -6,12 +6,21 @@ from datetime import datetime, timedelta
 import random
 import sys
 import time
-import snscrape.modules.twitter as sntwitter
 
 # ---------------- CONFIG ----------------
 USER_LIST = [
     "Amockx2022",
     "TheDeshBhakt"
+    "imVkohli",
+"SrBachchan",
+"BeingSalmanKhan",
+"akshaykumar",
+"iamsrk",
+"sachin_rt",
+"iHrithik",
+"klrahul",
+"priyankachopra",
+"YUVSTRONG12"
 ]
 
 REPLY_QUEUE_FILE = "reply_queue.json"
@@ -56,7 +65,7 @@ def clean_text(text):
 
 # ---------------- FETCH TWEET IDS ----------------
 def fetch_tweet_ids_advanced(username, limit=LIMIT_PER_USER):
-    """Fetch tweet IDs via TwitterAPI.io advanced search, fallback to snscrape"""
+    """Fetch tweet IDs via TwitterAPI.io advanced search"""
     tweet_ids = []
     headers = {"X-API-Key": TWITTERAPI_IO_KEY}
     base_url = "https://api.twitterapi.io/twitter/tweet/advanced_search"
@@ -64,7 +73,6 @@ def fetch_tweet_ids_advanced(username, limit=LIMIT_PER_USER):
     seen_ids = set()
     max_id = None
 
-    # Primary: TwitterAPI.io
     try:
         while len(tweet_ids) < limit:
             params = {"query": query}
@@ -80,24 +88,12 @@ def fetch_tweet_ids_advanced(username, limit=LIMIT_PER_USER):
                 if not data.get("has_next_page", False) or not new_ids:
                     break
                 max_id = tweets[-1]["id"]
-                time.sleep(0.1)
+                time.sleep(0.1)  # Rate-limit buffer
             else:
                 print(f"❌ TwitterAPI.io failed for {username}: {resp.status_code} {resp.text[:100]}")
                 break
     except Exception as e:
         print(f"❌ TwitterAPI.io exception for {username}: {e}")
-
-    # Fallback: snscrape
-    if len(tweet_ids) < limit:
-        print(f"🔄 Falling back to snscrape for {username}")
-        try:
-            for i, tweet in enumerate(sntwitter.TwitterUserScraper(username.lstrip("@")).get_items()):
-                if len(tweet_ids) >= limit:
-                    break
-                if tweet.id not in seen_ids:
-                    tweet_ids.append(tweet.id)
-        except Exception as e:
-            print(f"❌ snscrape failed for {username}: {e}")
 
     return tweet_ids[:limit]
 
