@@ -31,7 +31,8 @@ jobs:
           TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
           USERNAME: ${{ github.event.inputs.username }}
         run: |
-          echo "import os
+          cat > test_tweets.py << 'EOF'
+import os
 import requests
 
 API_KEY = os.getenv('TWITTERAPI_IO_KEY')
@@ -48,16 +49,20 @@ headers = {'X-API-Key': API_KEY}
 
 print(f'🔹 Fetching tweets for user: {USERNAME}...')
 
-response = requests.get(url, headers=headers)
-data = response.json()
+try:
+    response = requests.get(url, headers=headers, timeout=30)
+    data = response.json()
+except Exception as e:
+    print('⚠️ Request error:', e)
+    raise
 
-if response.status_code == 200 and 'tweets' in data:
-    tweet_ids = [t['id'] for t in data['tweets'] if 'id' in t]
+if response.status_code == 200 and isinstance(data, dict) and 'tweets' in data:
+    tweet_ids = [t.get('id') for t in data['tweets'] if 'id' in t]
     print('✅ Tweet IDs fetched:')
     print(tweet_ids)
 else:
     print(f'❌ Error: {response.status_code}')
     print(data)
-" > test_tweets.py
+EOF
 
           python test_tweets.py
