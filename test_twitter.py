@@ -15,7 +15,7 @@ if not USERNAME:
 
 # API call
 url = f'https://api.twitterapi.io/twitter/user/info?userName={USERNAME}'
-headers = {'X-API-Key': API_KEY}
+headers = {'x-api-key': API_KEY}
 
 # ... (existing imports and validations up to headers = ...)
 
