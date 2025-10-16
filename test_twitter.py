@@ -15,5 +15,8 @@ url = f'https://api.twitterapi.io/twitter/user/last_tweets?userName={USERNAME}'
 headers = {'X-API-Key': API_KEY}
 r = requests.get(url, headers=headers)
 data = r.json()
+# Add these lines right after data = response.json()
+print(f"Status Code: {response.status_code}")
+print(f"Full Response: {json.dumps(data, indent=2)}")  # Pretty-print JSON for logs
 tweet_ids = [t['id'] for t in data.get('tweets', []) if 'id' in t]
 print('✅ Tweet IDs:', tweet_ids)
