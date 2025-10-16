@@ -7,6 +7,10 @@ on:
         description: "Enter the Twitter username (without @)"
         required: true
         default: "narendramodi"
+      user_id:
+        description: "Enter the Twitter user ID (optional; if provided, uses this instead of username)"
+        required: false
+        default: ""
 
 jobs:
   twitterapi-test:
@@ -30,4 +34,5 @@ jobs:
         env:
           TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
           USERNAME: ${{ github.event.inputs.username }}
+          USER_ID: ${{ github.event.inputs.user_id }}
         run: python test_twitter.py
