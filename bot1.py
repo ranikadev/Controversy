@@ -58,7 +58,7 @@ def clean_text(text):
 def fetch_tweets(limit_per_user=2):
     """Fetch recent tweets from all usernames via TwitterAPI.io"""
     tweets = []
-    headers = {"Authorization": f"Bearer {TWITTERAPI_IO_KEY}"}
+    headers = {"x-api-key": TWITTERAPI_IO_KEY}
 
     for username in USER_LIST:
         try:
