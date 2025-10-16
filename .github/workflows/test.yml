@@ -1,7 +1,7 @@
 name: TwitterAPI.io Key Test
 
 on:
-  workflow_dispatch:  # allows you to run manually from Actions tab
+  workflow_dispatch:  # run manually from Actions tab
 
 jobs:
   test-key:
@@ -15,19 +15,43 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Install requests
+        run: |
+          pip install requests
+
       - name: Run test script
         env:
           TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
         run: |
           python3 - <<'EOF'
-          import requests, os
+          import requests, os, json
 
           key = os.getenv("TWITTERAPI_IO_KEY")
+          if not key:
+              print("❌ No TWITTERAPI_IO_KEY found in GitHub secrets.")
+              exit(1)
+
           url = "https://api.twitterapi.io/twitter/tweet/advanced_search"
           headers = {"X-API-Key": key}
           params = {"query": "from:PMOIndia", "max_results": 1}
 
+          print("🔹 Testing TwitterAPI.io key...")
           r = requests.get(url, headers=headers, params=params)
-          print("Status:", r.status_code)
-          print("Response:", r.text)
+
+          print(f"Status Code: {r.status_code}")
+          try:
+              print("Response JSON:", json.dumps(r.json(), indent=2))
+          except Exception:
+              print("Response Text:", r.text)
+
+          if r.status_code == 200:
+              print("✅ Key works! TwitterAPI.io endpoint is reachable.")
+          elif r.status_code == 401:
+              print("❌ 401 Unauthorized — Key invalid or missing.")
+          elif r.status_code == 403:
+              print("🚫 403 Forbidden — Your plan may not support this endpoint.")
+          elif r.status_code == 429:
+              print("⚠️ 429 Rate limited — Try again later.")
+          else:
+              print("❓ Unexpected status:", r.status_code)
           EOF
