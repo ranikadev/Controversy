@@ -1,33 +1,8 @@
-name: Test TwitterAPI Request
+import os
+import requests
 
-on:
-  workflow_dispatch:   # Allows manual run
+url = "https://api.twitterapi.io/twitter/user/last_tweets"
+headers = {"X-API-Key": os.environ['TWITTERAPI_KEY']}
 
-jobs:
-  test-twitterapi:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
-
-      - name: Run Twitter API test
-        env:
-          TWITTERAPI_KEY: ${{ secrets.TWITTERAPI_KEY }}
-        run: |
-          echo "import requests
-url = 'https://api.twitterapi.io/twitter/user/last_tweets'
-headers = {'X-API-Key': '${TWITTERAPI_KEY}'}
 response = requests.get(url, headers=headers)
-print(response.json())" > test_twitter.py
-          python test_twitter.py
+print(response.json())
