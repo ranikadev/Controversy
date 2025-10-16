@@ -12,17 +12,7 @@ USER_LIST = [
     "@TheDeshbhakt",
     "@KumarShyam",
     "@AL_Meudi",
-    "@ryaindia",
-    "@RedVolunteers",
-    "@IndianLeftWing",
-    "@HindutvaWatchIn",
-    "@SuhasiniRaj",
-    "@ForumOfIndianLeftists",
-    "@TheWire_in",
-    "@Newslaundry",
-    "@Scroll_in",
-    "@SFIIndia",
-    "@DYFIIndia"
+    "@ryaindia"
 ]
 
 REPLY_QUEUE_FILE = "reply_queue.json"
@@ -65,7 +55,7 @@ def clean_text(text):
     return text.strip()
 
 # ---------------- FETCH TWEETS ----------------
-def fetch_tweets(limit_per_user=5):
+def fetch_tweets(limit_per_user=2):
     """Fetch recent tweets from all usernames via TwitterAPI.io"""
     tweets = []
     headers = {"Authorization": f"Bearer {TWITTERAPI_IO_KEY}"}
