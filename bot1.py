@@ -8,7 +8,7 @@ import sys
 
 # ---------------- CONFIG ----------------
 USER_LIST = [
-    "@rathee_dhr",
+    "@Amockx2022",
     "@TheDeshBhakt"
 ]
 
