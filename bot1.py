@@ -8,8 +8,8 @@ import sys
 
 # ---------------- CONFIG ----------------
 USER_LIST = [
-    "@Amockx2022",
-    "@TheDeshBhakt"
+    "Amockx2022",
+    "TheDeshBhakt"
 ]
 
 REPLY_QUEUE_FILE = "reply_queue.json"
