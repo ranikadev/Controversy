@@ -26,39 +26,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Run Twitter API Test
+      - name: Create and run Python script
         env:
           TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
           USERNAME: ${{ github.event.inputs.username }}
         run: |
-          import os
-          import requests
+          echo "import os
+import requests
 
-          API_KEY = os.getenv('TWITTERAPI_IO_KEY')
-          USERNAME = os.getenv('USERNAME')
+API_KEY = os.getenv('TWITTERAPI_IO_KEY')
+USERNAME = os.getenv('USERNAME')
 
-          if not API_KEY:
-              raise ValueError('❌ Missing TWITTERAPI_IO_KEY secret!')
+if not API_KEY:
+    raise ValueError('❌ Missing TWITTERAPI_IO_KEY secret!')
 
-          if not USERNAME:
-              raise ValueError('❌ Missing username input!')
+if not USERNAME:
+    raise ValueError('❌ Missing username input!')
 
-          url = f'https://api.twitterapi.io/twitter/user/last_tweets?userName={USERNAME}'
-          headers = {'X-API-Key': API_KEY}
+url = f'https://api.twitterapi.io/twitter/user/last_tweets?userName={USERNAME}'
+headers = {'X-API-Key': API_KEY}
 
-          print(f'🔹 Fetching tweets for user: {USERNAME}...')
+print(f'🔹 Fetching tweets for user: {USERNAME}...')
 
-          try:
-              response = requests.get(url, headers=headers, timeout=30)
-              data = response.json()
-          except Exception as e:
-              print('⚠️ Request error:', e)
-              raise
+response = requests.get(url, headers=headers)
+data = response.json()
 
-          if response.status_code == 200 and isinstance(data, dict) and 'tweets' in data:
-              tweet_ids = [t.get('id') for t in data['tweets'] if 'id' in t]
-              print('✅ Tweet IDs fetched:')
-              print(tweet_ids)
-          else:
-              print(f'❌ Error: {response.status_code}')
-              print(data)
+if response.status_code == 200 and 'tweets' in data:
+    tweet_ids = [t['id'] for t in data['tweets'] if 'id' in t]
+    print('✅ Tweet IDs fetched:')
+    print(tweet_ids)
+else:
+    print(f'❌ Error: {response.status_code}')
+    print(data)
+" > test_tweets.py
+
+          python test_tweets.py
