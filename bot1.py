@@ -52,24 +52,40 @@ def clean_text(text):
     return text.strip()
 
 # ---------------- FETCH TWEETS ----------------
+import snscrape.modules.twitter as sntwitter
+
 def fetch_tweets(limit_per_user=2):
-    """Fetch recent tweets from all usernames via TwitterAPI.io"""
+    """Fetch recent tweets from all usernames, fallback to snscrape if TwitterAPI.io fails"""
     tweets = []
     headers = {"x-api-key": TWITTERAPI_IO_KEY}
 
     for username in USER_LIST:
+        user_tweets = []
+        # --- Primary: TwitterAPI.io ---
         try:
             url = f"https://api.twitterapi.io/user/tweets?username={username}&limit={limit_per_user}"
             resp = requests.get(url, headers=headers, timeout=15)
             if resp.status_code == 200:
                 data = resp.json()
                 for t in data.get("data", []):
-                    if t["id"] not in load_json(POSTED_FILE, {}):
-                        tweets.append({"id": t["id"], "author": username, "text": t.get("text", "")})
+                    user_tweets.append({"id": t["id"], "author": username, "text": t.get("text", "")})
             else:
-                print(f"❌ Error fetching tweets for {username}: {resp.status_code} {resp.text}")
+                print(f"❌ TwitterAPI.io failed for {username}: {resp.status_code}")
         except Exception as e:
-            print(f"❌ Exception fetching tweets for {username}: {e}")
+            print(f"❌ TwitterAPI.io exception for {username}: {e}")
+
+        # --- Fallback: snscrape ---
+        if not user_tweets:
+            print(f"🔄 Falling back to snscrape for {username}")
+            try:
+                for i, tweet in enumerate(sntwitter.TwitterUserScraper(username).get_items()):
+                    if i >= limit_per_user:
+                        break
+                    user_tweets.append({"id": tweet.id, "author": username, "text": tweet.content})
+            except Exception as e:
+                print(f"❌ snscrape failed for {username}: {e}")
+
+        tweets.extend(user_tweets)
 
     return tweets
 
