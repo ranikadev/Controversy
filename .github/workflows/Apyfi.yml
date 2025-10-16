@@ -23,4 +23,4 @@ jobs:
         env:
           APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
           TWITTER_USERNAME: elonmusk
-        run: python apify_fetch.py
+        run: python apyfi_fetch.py
