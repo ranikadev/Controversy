@@ -36,7 +36,9 @@ jobs:
       - name: Install dependencies
         run: |
             pip install tweepy==4.14.0 requests==2.31.0 python-dotenv==1.0.0
-
+      - name: Install dependencies
+        run: |
+            pip install snscrape
       - name: Run botfinal
         env:
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
