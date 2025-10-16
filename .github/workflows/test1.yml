@@ -31,7 +31,7 @@ jobs:
           TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
           USERNAME: ${{ github.event.inputs.username }}
         run: |
-          cat > test_tweets.py << 'EOF'
+          python - <<'END'
 import os
 import requests
 
@@ -63,6 +63,4 @@ if response.status_code == 200 and isinstance(data, dict) and 'tweets' in data:
 else:
     print(f'❌ Error: {response.status_code}')
     print(data)
-EOF
-
-          python test_tweets.py
+END
