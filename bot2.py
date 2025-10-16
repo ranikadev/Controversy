@@ -69,10 +69,10 @@ def fetch_tweet_ids_advanced(username, limit=LIMIT_PER_USER):
     """Fetch only tweet IDs using TwitterAPI.io (v2 search endpoint)"""
     tweet_ids = []
     headers = {
-        "Authorization": f"Bearer {TWITTERAPI_IO_KEY}",
+        "x-api-key": f"Bearer {TWITTERAPI_IO_KEY}",
         "Accept": "application/json"
     }
-    base_url = "https://api.twitterapi.io/api/v2/twitter/search"
+    base_url = "https://api.twitterapi.io/twitter/tweet/advanced_search"
     params = {"query": f"from:{username}", "limit": limit}
 
     try:
