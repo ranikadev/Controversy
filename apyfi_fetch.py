@@ -3,7 +3,7 @@ from apify_client import ApifyClient
 
 # Get your Apify API token from repository secrets or environment variables
 APIFY_TOKEN = os.getenv("APIFY_API_TOKEN")
-USERNAME = os.getenv("TWITTER_USERNAME", "elonmusk")  # default user
+USERNAME = os.getenv("TWITTER_USERNAME", "Indiafirstt")  # default user
 
 if not APIFY_TOKEN:
     raise ValueError("Missing APIFY_API_TOKEN in environment variables")
