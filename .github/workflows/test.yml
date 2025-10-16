@@ -2,10 +2,6 @@ name: Test TwitterAPI.io Key
 
 on:
   workflow_dispatch:  # Manual trigger via GitHub UI
-    inputs:
-      description: 'Trigger manual test'
-    types:
-      description: string
 
 jobs:
   test-key:
@@ -39,4 +35,4 @@ jobs:
             echo "Response body: $BODY"
             exit 1
           fi
-        
+          
