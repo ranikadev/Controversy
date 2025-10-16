@@ -1,0 +1,33 @@
+name: TwitterAPI.io Key Test
+
+on:
+  workflow_dispatch:  # allows you to run manually from Actions tab
+
+jobs:
+  test-key:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Run test script
+        env:
+          TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import requests, os
+
+          key = os.getenv("TWITTERAPI_IO_KEY")
+          url = "https://api.twitterapi.io/twitter/tweet/advanced_search"
+          headers = {"X-API-Key": key}
+          params = {"query": "from:PMOIndia", "max_results": 1}
+
+          r = requests.get(url, headers=headers, params=params)
+          print("Status:", r.status_code)
+          print("Response:", r.text)
+          EOF
