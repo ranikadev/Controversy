@@ -33,9 +33,15 @@ jobs:
           python -c '''
           import requests
           import json
+          import os
+          import sys
 
           url = "https://api.twitterapi.io/twitter/user/last_tweets"
-          headers = {"X-API-Key": ''' + "'" + '$API_KEY' + "'" + ''' }
+          api_key = os.environ.get("API_KEY")
+          if not api_key:
+              print("❌ Error: API_KEY environment variable not set.")
+              sys.exit(1)
+          headers = {"X-API-Key": api_key}
           params = {"screen_name": "twitter"}  # Public test account for reliability
 
           try:
@@ -46,13 +52,12 @@ jobs:
                   data = response.json()
                   print("✅ Success! Response JSON (truncated):")
                   print(json.dumps(data, indent=2)[:500] + "...")  # Truncate for logs
-                  print("Full tweet IDs:", [tweet.get("id", "N/A") for tweet in data.get("tweets", [])[:5]])
+                  print("First 5 tweet IDs:", [tweet.get("id", "N/A") for tweet in data.get("tweets", [])[:5]])
               else:
                   print("❌ Failed. Response body:")
                   print(response.text)
-                  exit(1)
+                  sys.exit(1)
           except Exception as e:
               print(f"❌ Python Error: {e}")
-              exit(1)
+              sys.exit(1)
           '''
-          
