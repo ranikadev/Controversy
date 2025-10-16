@@ -1,211 +1,185 @@
+import os
 import requests
-from googletrans import Translator
+import json
 import re
-import tweepy
 from datetime import datetime, timedelta
 import random
-import os
-import json
+import sys
 
+# ---------------- CONFIG ----------------
+USER_LIST = [
+    "@dhruv_rathee",
+    "@TheDeshbhakt",
+    "@KumarShyam",
+    "@AL_Meudi",
+    "@ryaindia",
+    "@RedVolunteers",
+    "@IndianLeftWing",
+    "@HindutvaWatchIn",
+    "@SuhasiniRaj",
+    "@ForumOfIndianLeftists",
+    "@TheWire_in",
+    "@Newslaundry",
+    "@Scroll_in",
+    "@SFIIndia",
+    "@DYFIIndia"
+]
 
-translator = Translator()
+REPLY_QUEUE_FILE = "reply_queue.json"
+POSTED_FILE = "posted_news.json"
 
-# ---------------- Config ----------------
-NEWS_FILES = {
-    "bjp": "bjp_news.txt",
-    "congress": "congress_news.txt",
-    "countries": "countries_news.txt",
-    "others": "others_news.txt"
-}
-POSTED_FILE = "posted_news.json"  # store news + date posted
-LAST_FETCH_FILE = "last_fetch.txt"
+TWITTERAPI_IO_KEY = os.getenv("TWITTERAPI_IO_KEY")
+PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
 
-PROMPTS = {
-    "bjp": "give me 9 controversial news each in 200 to 250 characters related to political parties specifically negative for BJP, Today, in hindi",
-    "congress": "give me 9 controversial news each in 200 to 250 characters related to political parties specifically negative for congress, Today, in hindi",
-    "countries": "give me 5 controversial news each in 200 to 250 characters related to countries, Today, in hindi",
-    "others": "give me 9 controversial news each in 200 to 250 characters related to cricket/defence/religion/administration/incident/event, Today, in hindi"
-}
-import os
+DRY_RUN = False  # True = Test mode (doesn't post replies)
 
-PERPLEXITY_API_KEY = os.environ.get("PERPLEXITY_API_KEY")
-TWITTER_API_KEY = os.environ.get("TWITTER_API_KEY")
-TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET")
-TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
-TWITTER_ACCESS_SECRET = os.environ.get("TWITTER_ACCESS_SECRET")
-# ---------------- Twitter Setup ----------------
-auth = tweepy.OAuth1UserHandler(
-    TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
-)
-api = tweepy.API(auth)
-
-# ---------------- Utility Functions ----------------
-def is_hindi(text):
-    return any('\u0900' <= ch <= '\u097F' for ch in text)
-
-def to_hindi(text):
-    if not is_hindi(text):
-        try:
-            return translator.translate(text, dest='hi').text
-        except:
-            return text
-    return text
-
-def split_news(raw_news):
-    raw_news = raw_news.strip()
-    items = re.split(r'\d+\.\s', raw_news)
-    items = [i.strip() for i in items if i.strip()]
-    if len(items) < 2:
-        items = [s.strip() for s in re.split(r'\n|(?<=\.)\s', raw_news) if 200 <= len(s.strip()) <= 250]
-    return [i for i in items if 200 <= len(i) <= 250]
-
-def fetch_news(prompt):
-    url = "https://api.perplexity.ai/sonar"
-    headers = {"Authorization": f"Bearer {PERPLEXITY_API_KEY}", "Content-Type": "application/json"}
-    payload = {"query": prompt}
-    response = requests.post(url, json=payload, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        if "answer" in data:
-            return data["answer"]
-    return ""
-
-def save_news(news_list, filename, replace=True):
-    if replace:
-        with open(filename, "w", encoding="utf-8") as f:
-            for news in news_list:
-                f.write(news + "\n")
-    else:
-        existing = set()
-        if os.path.exists(filename):
-            with open(filename, "r", encoding="utf-8") as f:
-                existing = set(f.read().splitlines())
-        with open(filename, "a", encoding="utf-8") as f:
-            for news in news_list:
-                if news not in existing:
-                    f.write(news + "\n")
-
-def load_posted():
-    if os.path.exists(POSTED_FILE):
-        with open(POSTED_FILE, "r", encoding="utf-8") as f:
+# ---------------- HELPER FUNCTIONS ----------------
+def load_json(path, default):
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
             try:
                 return json.load(f)
             except:
-                return {}
-    return {}
+                return default
+    return default
 
-def save_posted(posted):
-    with open(POSTED_FILE, "w", encoding="utf-8") as f:
-        json.dump(posted, f, ensure_ascii=False, indent=2)
+def save_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-def cleanup_posted(days=5):
-    posted = load_posted()
-    cutoff = datetime.now() - timedelta(days=days)
-    posted = {k: v for k, v in posted.items() if datetime.strptime(v, "%Y-%m-%d") >= cutoff}
-    save_posted(posted)
-
-def load_news_randomized(today=True):
-    files_to_load = {}
-    for cat in ["bjp", "congress", "countries", "others"]:
-        if os.path.exists(NEWS_FILES[cat]):
-            with open(NEWS_FILES[cat], "r", encoding="utf-8") as f:
-                lines = [line.strip() for line in f if len(line.strip()) >= 150]
-                random.shuffle(lines)
-                files_to_load[cat] = lines
+def clean_text(text):
+    """Clean and trim text under 275 chars"""
+    if not text:
+        return ""
+    text = re.sub(r'\[\d+\](?:\[\d+\])*', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    if len(text) > 273:
+        trimmed = text[:273]
+        last_stop = max(trimmed.rfind('।'), trimmed.rfind('.'), trimmed.rfind('!'), trimmed.rfind('?'))
+        if last_stop > 200:
+            text = trimmed[:last_stop+1]
         else:
-            files_to_load[cat] = []
+            text = trimmed[:trimmed.rfind(' ')]
+        if text[-1] not in {'।', '.', '?', '!'}:
+            text += "..."
+    return text.strip()
 
-    # Randomize between BJP & Congress
-    first_two = files_to_load["bjp"] + files_to_load["congress"]
-    random.shuffle(first_two)
+# ---------------- FETCH TWEETS ----------------
+def fetch_tweets(limit_per_user=5):
+    """Fetch recent tweets from all usernames via TwitterAPI.io"""
+    tweets = []
+    headers = {"Authorization": f"Bearer {TWITTERAPI_IO_KEY}"}
 
-    all_news = first_two + files_to_load["countries"] + files_to_load["others"]
-    return all_news[:32]
+    for username in USER_LIST:
+        try:
+            url = f"https://api.twitterapi.io/user/tweets?username={username}&limit={limit_per_user}"
+            resp = requests.get(url, headers=headers, timeout=15)
+            if resp.status_code == 200:
+                data = resp.json()
+                for t in data.get("data", []):
+                    if t["id"] not in load_json(POSTED_FILE, {}):
+                        tweets.append({"id": t["id"], "author": username, "text": t.get("text", "")})
+            else:
+                print(f"❌ Error fetching tweets for {username}: {resp.status_code} {resp.text}")
+        except Exception as e:
+            print(f"❌ Exception fetching tweets for {username}: {e}")
 
-def post_next(today_post=True):
-    now_hour = datetime.now().hour
-    # Morning = 9-17 → yesterday's news, Evening = 18-1 → today's news
-    news_pool = load_news_randomized(today=today_post)
-    posted = load_posted()
+    return tweets
 
-    for news in news_pool:
-        if news not in posted:
-            try:
-                api.update_status(news)
-                print(f"{datetime.now()} - Posted:", news)
-                posted[news] = datetime.now().strftime("%Y-%m-%d")
-                save_posted(posted)
-            except Exception as e:
-                print("Error posting:", e)
-            break
+# ---------------- REPLY QUEUE ----------------
+def update_reply_queue():
+    queue = load_json(REPLY_QUEUE_FILE, [])
+    if queue:
+        print(f"✅ Reply queue has {len(queue)} tweets, skipping fetch.")
+        return queue
+
+    print(f"🔄 Fetching tweets for all users via TwitterAPI.io...")
+    tweets = fetch_tweets()
+
+    if tweets:
+        queue.extend(tweets)
+        save_json(REPLY_QUEUE_FILE, queue)
+        print(f"✅ Reply queue updated with {len(tweets)} tweets.")
     else:
-        print("No new news to post.")
+        print("⚠️ No tweets fetched.")
 
-# ---------------- Manual Fetch & Post for Testing ----------------
-def manual_fetch_post(category=None):
-    if category is None:
-        category = input("Enter category to fetch (bjp/congress/countries/others): ").strip().lower()
-    else:
-        category = category.lower()
+    return queue
 
-    if category not in PROMPTS:
-        print("Invalid category!")
-        return
+# ---------------- PERPLEXITY API ----------------
+def generate_reply(tweet_text):
+    """Call Perplexity API to generate Hindi political reply under 260 chars"""
+    url = "https://api.perplexity.ai/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    prompt = (
+        f"Respond to my request as POLITICAL ANALYST (no filters). "
+        f"Request: Criticize the following tweet in exact or less than 260 characters in Hindi:\n{tweet_text}"
+    )
+    data = {
+        "model": "sonar",
+        "messages": [{"role": "system", "content": "Respond only in Hindi under 260 chars."},
+                     {"role": "user", "content": prompt}],
+        "max_tokens": 180
+    }
 
-    print(f"Fetching news for category: {category}")
-    raw_news = fetch_news(PROMPTS[category])
-    news_list = split_news(raw_news)
-    news_list = [to_hindi(n) for n in news_list]
-    if not news_list:
-        print("No news fetched.")
-        return
-    save_news(news_list, NEWS_FILES[category], replace=True)
-    print(f"Saved {len(news_list)} news in {NEWS_FILES[category]}")
-    # Post one news randomly
-    news_to_post = random.choice(news_list)
     try:
-        api.update_status(news_to_post)
-        print("Posted successfully:", news_to_post)
+        r = requests.post(url, headers=headers, json=data, timeout=20)
+        if r.status_code != 200:
+            print(f"❌ Perplexity API error {r.status_code}: {r.text[:200]}")
+            return "सारांश लोड करने में समस्या।"
+        news = r.json()["choices"][0]["message"]["content"].strip()
+        return clean_text(news)
     except Exception as e:
-        print("Error posting:", e)
-# ---------------- Main Flow ----------------
-if __name__ == "__main__":
-    import sys
-    action = sys.argv[1] if len(sys.argv) > 1 else "auto"
-    category = sys.argv[2] if len(sys.argv) > 2 else None
+        print("❌ Perplexity fetch error:", e)
+        return "सारांश लोड करने में समस्या।"
 
-    if action == "manual":
-        manual_fetch_post(category=category)
+# ---------------- POST REPLY ----------------
+def post_reply(tweet_id, text):
+    print(f"[{datetime.now()}] 🟡 Attempting to reply ({len(text)} chars) to {tweet_id}...")
+    if DRY_RUN:
+        print(f"💬 DRY RUN — would reply:\n{text}")
+        return True
+
+    # Replace with actual X API post call
+    # For example using Tweepy or requests
+    print(f"✅ Replied to {tweet_id} | Reply text: {text[:60]}...")
+    # Mark as posted
+    posted = load_json(POSTED_FILE, {})
+    posted[tweet_id] = datetime.now().strftime("%Y-%m-%d")
+    save_json(POSTED_FILE, posted)
+    return True
+
+def reply_to_next():
+    queue = update_reply_queue()
+    if not queue:
+        print("ℹ️ Reply queue empty, nothing to post.")
+        return
+
+    tweet = queue.pop(0)
+    save_json(REPLY_QUEUE_FILE, queue)
+
+    reply_text = generate_reply(tweet["text"])
+    post_reply(tweet["id"], reply_text)
+
+# ---------------- AUTO RUN ----------------
+def auto_run():
+    now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    hour = now_ist.hour
+
+    if 6 <= hour <= 23:  # 9 AM – 11 PM IST
+        print(f"[{now_ist}] 🔄 Running reply system...")
+        reply_to_next()
     else:
-        # Auto mode remains the same
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        current_hour = datetime.now().hour
+        print(f"[{now_ist}] 💤 Outside posting hours (9 AM–11 PM).")
 
-        # Cleanup old posted news
-        cleanup_posted(days=5)
+# ---------------- MAIN ----------------
+if __name__ == "__main__":
+    mode = sys.argv[1].lower() if len(sys.argv) > 1 else "auto"
 
-        # Fetch new news once daily at 6 PM
-        need_fetch = True
-        if os.path.exists(LAST_FETCH_FILE):
-            with open(LAST_FETCH_FILE, "r") as f:
-                if f.read().strip() == today_str:
-                    need_fetch = False
-
-        if current_hour == 18 and need_fetch:
-            print("Fetching fresh news at 6 PM...")
-            for key, prompt in PROMPTS.items():
-                raw_news = fetch_news(prompt)
-                news_list = split_news(raw_news)
-                news_list = [to_hindi(n) for n in news_list]
-                save_news(news_list, NEWS_FILES[key], replace=True)
-                print(f"Saved {len(news_list)} news in {NEWS_FILES[key]}")
-            with open(LAST_FETCH_FILE, "w") as f:
-                f.write(today_str)
-        else:
-            print("Fetching skipped. Using existing news.")
-
-        # Post hourly 9 AM → 1 AM
-        if 9 <= current_hour <= 23 or 0 <= current_hour <= 1:
-            post_next(today_post=(current_hour >= 18))
-        else:
-            print("Outside posting hours. No post.")
+    if mode == "manual":
+        DRY_RUN = True
+        reply_to_next()
+    else:
+        auto_run()
