@@ -40,6 +40,7 @@ jobs:
       - name: Run botfinal
         env:
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY}}
           TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
           TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
           TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
@@ -48,4 +49,4 @@ jobs:
         run: |
           MODE="${{ github.event.inputs.mode || 'auto' }}"
           CATEGORY="${{ github.event.inputs.category || '' }}"
-          python reply.py $MODE $CATEGORY
+          python bot1.py $MODE $CATEGORY
