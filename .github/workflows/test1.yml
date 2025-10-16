@@ -1,35 +1,63 @@
-name: Test TwitterAPI Request
+name: Test TwitterAPI (Get Tweet IDs)
 
 on:
   workflow_dispatch:
+    inputs:
+      username:
+        description: "Enter the Twitter username (without @)"
+        required: true
+        default: "narendramodi"
 
 jobs:
-  test-twitterapi:
-    runs-on: ubuntu-latest   # ← This is line 5 here
+  twitterapi-test:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Run Twitter API test
+      - name: Run Twitter API Test
         env:
-          TWITTERAPI_KEY: ${{ secrets.TWITTERAPI_KEY }}
+          TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
+          USERNAME: ${{ github.event.inputs.username }}
         run: |
           echo "import os
 import requests
 
-url = 'https://api.twitterapi.io/twitter/user/last_tweets'
-headers = {'X-API-Key': os.environ['TWITTERAPI_KEY']}
+API_KEY = os.getenv('TWITTERAPI_IO_KEY')
+USERNAME = os.getenv('USERNAME')
+
+if not API_KEY:
+    raise ValueError('❌ Missing TWITTERAPI_IO_KEY secret!')
+
+if not USERNAME:
+    raise ValueError('❌ Missing username input!')
+
+url = f'https://api.twitterapi.io/twitter/user/last_tweets?userName={USERNAME}'
+headers = {'X-API-Key': API_KEY}
+
+print(f'🔹 Fetching tweets for user: {USERNAME}...')
+
 response = requests.get(url, headers=headers)
-print(response.json())" > test_twitter.py
-          python test_twitter.py
+data = response.json()
+
+if response.status_code == 200 and 'tweets' in data:
+    tweet_ids = [t['id'] for t in data['tweets'] if 'id' in t]
+    print('✅ Tweet IDs fetched:')
+    print(tweet_ids)
+else:
+    print(f'❌ Error: {response.status_code}')
+    print(data)
+" > test_tweets.py
+
+          python test_tweets.py
