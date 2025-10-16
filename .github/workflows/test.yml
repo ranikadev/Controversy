@@ -1,57 +1,42 @@
-name: TwitterAPI.io Key Test
+name: Test TwitterAPI.io Key
 
 on:
-  workflow_dispatch:  # run manually from Actions tab
+  workflow_dispatch:  # Manual trigger via GitHub UI
+    inputs:
+      description: 'Trigger manual test'
+    types:
+      description: string
 
 jobs:
   test-key:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install requests
-        run: |
-          pip install requests
-
-      - name: Run test script
+      - name: Test API Key
         env:
-          TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
+          API_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}  # Your secret key
         run: |
-          python3 - <<'EOF'
-          import requests, os, json
-
-          key = os.getenv("TWITTERAPI_IO_KEY")
-          if not key:
-              print("❌ No TWITTERAPI_IO_KEY found in GitHub secrets.")
-              exit(1)
-
-          url = "https://api.twitterapi.io/twitter/tweet/advanced_search"
-          headers = {"X-API-Key": key}
-          params = {"query": "from:PMOIndia", "max_results": 1}
-
-          print("🔹 Testing TwitterAPI.io key...")
-          r = requests.get(url, headers=headers, params=params)
-
-          print(f"Status Code: {r.status_code}")
-          try:
-              print("Response JSON:", json.dumps(r.json(), indent=2))
-          except Exception:
-              print("Response Text:", r.text)
-
-          if r.status_code == 200:
-              print("✅ Key works! TwitterAPI.io endpoint is reachable.")
-          elif r.status_code == 401:
-              print("❌ 401 Unauthorized — Key invalid or missing.")
-          elif r.status_code == 403:
-              print("🚫 403 Forbidden — Your plan may not support this endpoint.")
-          elif r.status_code == 429:
-              print("⚠️ 429 Rate limited — Try again later.")
-          else:
-              print("❓ Unexpected status:", r.status_code)
-          EOF
+          if [[ -z "$API_KEY" ]]; then
+            echo "❌ Error: TWITTERAPI_IO_KEY secret not found. Add it in repo settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          
+          echo "Testing TwitterAPI.io key with Get Trends endpoint..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -H "X-API-Key: $API_KEY" \
+            https://api.twitterapi.io/twitter/trend)
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ Success! API key is valid."
+            echo "Response body (truncated): $BODY" | head -c 200
+            echo "... (full response available in logs)"
+          else
+            echo "❌ Failed with HTTP $HTTP_CODE"
+            echo "Response body: $BODY"
+            exit 1
+          fi
+          
