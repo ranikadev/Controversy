@@ -23,35 +23,36 @@ jobs:
       - name: Run Test Script
         env:
           API_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}  # Your secret key
+        shell: bash
         run: |
           if [[ -z "$API_KEY" ]]; then
             echo "❌ Error: TWITTERAPI_IO_KEY secret not found. Add it in repo settings > Secrets and variables > Actions."
             exit 1
           fi
 
-          python -c "
-import requests
-import json
+          python -c '''
+          import requests
+          import json
 
-url = 'https://api.twitterapi.io/twitter/user/last_tweets'
-headers = {'X-API-Key': '$API_KEY'}
-params = {'screen_name': 'twitter'}  # Public test account
+          url = "https://api.twitterapi.io/twitter/user/last_tweets"
+          headers = {"X-API-Key": ''' + "'" + '$API_KEY' + "'" + '''}
+          params = {"screen_name": "twitter"}  # Public test account for reliability
 
-try:
-    response = requests.get(url, headers=headers, params=params)
-    print(f'Status Code: {response.status_code}')
-    
-    if response.status_code == 200:
-        data = response.json()
-        print('✅ Success! Response JSON (truncated):')
-        print(json.dumps(data, indent=2)[:500] + '...')  # Truncate for logs
-        print('Full tweet IDs:', [tweet.get('id', 'N/A') for tweet in data.get('tweets', [])[:5]])
-    else:
-        print('❌ Failed. Response body:')
-        print(response.text)
-        exit(1)
-except Exception as e:
-    print(f'❌ Python Error: {e}')
-    exit(1)
-          "
+          try:
+              response = requests.get(url, headers=headers, params=params)
+              print(f"Status Code: {response.status_code}")
+              
+              if response.status_code == 200:
+                  data = response.json()
+                  print("✅ Success! Response JSON (truncated):")
+                  print(json.dumps(data, indent=2)[:500] + "...")  # Truncate for logs
+                  print("Full tweet IDs:", [tweet.get("id", "N/A") for tweet in data.get("tweets", [])[:5]])
+              else:
+                  print("❌ Failed. Response body:")
+                  print(response.text)
+                  exit(1)
+          except Exception as e:
+              print(f"❌ Python Error: {e}")
+              exit(1)
+          '''
           
