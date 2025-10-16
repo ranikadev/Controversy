@@ -35,7 +35,7 @@ jobs:
           import json
 
           url = "https://api.twitterapi.io/twitter/user/last_tweets"
-          headers = {"X-API-Key": ''' + "'" + '$API_KEY' + "'" + '''}
+          headers = {"X-API-Key": ''' + "'" + '$API_KEY' + "'" + ''' }
           params = {"screen_name": "twitter"}  # Public test account for reliability
 
           try:
