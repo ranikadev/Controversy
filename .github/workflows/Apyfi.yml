@@ -1,26 +1,24 @@
-name: Fetch Latest Tweets
+name: Fetch Latest Tweet
 
 on:
-  workflow_dispatch:  # manual trigger for now
+  workflow_dispatch:
 
 jobs:
-  fetch-tweets:
+  fetch_latest:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install apify-client
 
       - name: Run tweet fetcher
         env:
           APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
-          TWITTER_USERNAME: Indiafirstt
         run: python apyfi_fetch.py
